@@ -46,6 +46,27 @@ archive** — get it from `dsh-keystore.zip`, or generate your own with `keytool
 but note that Android only accepts an update signed by the same key, so an
 existing install cannot be upgraded by a differently-signed APK.
 
+## The ABI marker
+
+`app/src/main/jniLibs/arm64-v8a/libdshabi.so` is a 3.8 KB stub that nothing links
+against or loads. It exists so the APK declares `native-code: 'arm64-v8a'`.
+
+Every binary this app ships — the node runtime, bash, and the whole Termux
+prefix — is an aarch64 shared object executed from the app's private directory.
+Without anything under `lib/`, the APK carries **no** ABI declaration, so a
+32-bit or x86 device could install all 160 MB of it and only discover the
+mismatch by failing to start. With the marker, the installer filters it out.
+
+Source: `tools/abi-marker/libdshabi.c`. Rebuild with:
+
+```sh
+clang -shared -fPIC -O2 -s --target=aarch64-linux-android30 \
+  -o app/src/main/jniLibs/arm64-v8a/libdshabi.so tools/abi-marker/libdshabi.c
+```
+
+Keep the `.so` committed — regenerating it needs an NDK, and it is not built by
+Gradle.
+
 ## Debug and release variants
 
 Both exist; they are the Gradle defaults, with no flavour split.
