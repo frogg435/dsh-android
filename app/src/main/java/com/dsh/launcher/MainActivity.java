@@ -167,6 +167,8 @@ public class MainActivity extends Activity {
 		// into the standard-name dispatcher forever (373 processes).
 		// v8: prefix re-snapshotted with curl, python-pip and their shared
 		// libraries, which the earlier snapshot predated.
+		// v12: dsh-balance joins dsh-adb as a bundled plugin, and
+		// setup-plugin.sh installs a list rather than one hardcoded package.
 		// v11: setup-apt.sh refreshes the dispatcher on every run. It used to
 		// skip when one already existed, so the dpkg --root fix stayed in the
 		// APK while an already-set-up install kept the old dispatcher.
@@ -178,7 +180,7 @@ public class MainActivity extends Activity {
 		// (the mtime filter matched nothing, because dpkg preserves the mtimes
 		// from the .deb), and python's LDSHARED gains -lpython3.14 so C
 		// extension builds can actually load on bionic.
-		File marker = new File(out, ".extracted-v11");
+		File marker = new File(out, ".extracted-v12");
 		if (marker.exists()) return out;
 
 		// NOTE: must NOT touch Views from this worker thread.
@@ -213,6 +215,10 @@ public class MainActivity extends Activity {
 		// in the profile's node_modules before dsh reads dsh.profile.bundles.
 		File home = new File(getFilesDir(), "home");
 		extractAssetDir("dsh-adb", new File(getFilesDir(), "dsh-adb"), buf);
+		// dsh-balance reads the DeepSeek account balance through a same-origin
+		// route and renders it in the sidebar footer; the API key stays on the
+		// host and is resolved through the credentials service.
+		extractAssetDir("dsh-balance", new File(getFilesDir(), "dsh-balance"), buf);
 		File plug = new File(getFilesDir(), "setup-plugin.sh");
 		extractAssetDir("setup-plugin.sh", plug, buf);
 		plug.setExecutable(true);

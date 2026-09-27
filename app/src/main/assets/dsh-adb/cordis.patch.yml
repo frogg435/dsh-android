@@ -1,0 +1,35 @@
+# The dsh-adb bundle patch: one insert that mounts the android_* ADB control
+# tools. It is applied in `dsh.profile.bundles` order, so later layers (the
+# profile's own cordis.patch.yml, a home-level patch, or a --patch overlay) can
+# address row `adb` to override its config or disable it.
+#
+# Every value below is also the schema default; state them only when you mean
+# to change them.
+- insert:
+    - id: adb
+      name: 'dsh-adb'
+      config:
+        # Binary to spawn. Absolute paths are fine.
+        adbPath: adb
+        # Pin a device when several are attached; empty selects the single
+        # online device and fails loud when zero or several are online. Every
+        # tool also accepts a per-call `serial` that overrides this.
+        serial: ''
+        # Directory adb treats as HOME, i.e. where .android/adbkey lives. Empty
+        # reuses an existing key store and pins it, so a wireless-debugging
+        # pairing survives a workspace change (the adb shim does HOME=$PWD).
+        adbHome: ''
+        # Per-command budget for ordinary adb round trips.
+        timeoutMs: 20000
+        # Budget for `uiautomator dump`, which is markedly slower.
+        dumpTimeoutMs: 40000
+        # Shell output cap handed to the model.
+        maxOutputChars: 8000
+        # Cap on nodes one `android_ui` result lists.
+        maxNodes: 400
+        # Screenshot destination; empty uses $TMPDIR/dsh-adb.
+        shotDir: ''
+        # Register the raw `android_shell` escape hatch.
+        enableShell: true
+        # Register the model-facing guidance section for these tools.
+        guidance: true

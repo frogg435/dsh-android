@@ -147,6 +147,29 @@ dsh-pkg install <包名>       # 重装整条依赖闭包
 `getBoundingClientRect()` 返回的是 **CSS 像素** —— 在 dpr 为 2.625 的设备上两者相差
 这个倍数，盲点坐标会静默点空。
 
+## 余额插件（dsh-balance）
+
+侧边栏底部显示当前 AI 服务商的账户余额，**凭据只在 host 端解析，永不进入浏览器**。
+
+它内置了 **38 家服务商**的目录，但要说清楚一件事：**只有 11 家能用 API Key 查到余额** ✗，
+其余 27 家根本没有提供余额接口。
+
+| 能力 | 数量 | 说明 |
+|---|---|---|
+| 货币余额 | 9 | DeepSeek、Moonshot/Kimi、阶跃星辰、硅基流动、OpenRouter、Ofox.ai、Novita AI、xAI，以及 NewAPI/OneAPI 中转站 |
+| 配额（百分比）| 2 | MiniMax、智谱 GLM |
+| 间接查询 | 5 | Anthropic（需 Admin Key）、Gemini（需 OAuth）、Together（仅用量）、Azure（需 Consumption API）、AWS（需 GetPaymentInstrumentBalance）|
+| 无接口 | 22 | OpenAI、Mistral、Cohere、Perplexity、Groq、Cerebras、Fireworks、ModelScope、七牛、百炼、火山、千帆、混元、百川、零一、LongCat、MiMo、AiHubMix、DMXAPI、302.AI、Vercel、Cloudflare |
+
+**NewAPI / OneAPI 中转站**那一行值得单独说：它用 `/dashboard/billing/credit_grants`
+—— 也就是 OpenAI 兼容的计费端点 —— 所以**用调用模型的同一把 API Key 就能查** ✓，
+把 `baseURL` 指向你的中转站即可。
+
+对「无接口」的服务商，插件会如实显示**「不提供余额接口」**，而不是猜一个数字 ——
+API Key + Base URL 依然可以正常调用模型，只是没有余额可显示。
+
+厂商表是纯数据（`lib/providers.js`），加一家就是加一行。
+
 ## 窄视口 UI 补丁
 
 `patches/` 里是这里唯一的前端改动：两个 CSS 块，修的是手机宽度下的布局。上游包是

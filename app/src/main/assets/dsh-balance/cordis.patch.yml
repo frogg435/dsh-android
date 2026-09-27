@@ -1,0 +1,25 @@
+# The dsh-balance bundle patch: one insert that mounts the DeepSeek balance
+# widget into the Web sidebar footer and serves its JSON route.
+#
+# Applied in `dsh.profile.bundles` order, so a later layer (the profile's own
+# cordis.patch.yml, a home-level patch, or a --patch overlay) can address row
+# `balance` to override its config or disable it.
+#
+# Every value below is also the schema default; state them only when you mean
+# to change them.
+- insert:
+    - id: balance
+      name: 'dsh-balance'
+      config:
+        # Credential reference holding the DeepSeek API key. Resolved through
+        # the credentials service, then the launching environment. The key
+        # never reaches the browser.
+        apiKeyEnv: DEEPSEEK_API_KEY
+        # Balance endpoint. Only DeepSeek is supported for now.
+        baseURL: 'https://api.deepseek.com'
+        # How often the host refreshes in the background, in milliseconds.
+        refreshMs: 60000
+        # Per-request timeout for one balance call.
+        timeoutMs: 15000
+        # Same-origin JSON route the browser widget reads.
+        route: /dsh-balance

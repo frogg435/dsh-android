@@ -9,11 +9,9 @@ release.keystore
 .keystore.env
 
 # Bulk assets. Rebuild them with BUILD.md's "Assembling the assets":
-#   runtime/  ~400 MB node + .so closure + dsh-termux
 #   usr/      ~120 MB Termux prefix (only the tooling below is tracked)
-#   dsh-adb/  a runtime-installed plugin
+#   runtime/  ~400 MB node + .so closure + dsh-termux
 app/src/main/assets/runtime/
-app/src/main/assets/dsh-adb/
 app/src/main/assets/usr/*
 # ...except the apt/dpkg tooling, which is ours and small.
 !app/src/main/assets/usr/var/
