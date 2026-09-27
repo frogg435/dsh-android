@@ -2,10 +2,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Shared storage.
+
+         targetSdk 28 is what lets node be exec()'d from filesDir, and it has a
+         second effect: Android 11+ keeps such an app on the LEGACY storage
+         model, where these two grant broad read/write over /sdcard. That is
+         effectively "all files access" without MANAGE_EXTERNAL_STORAGE — which
+         would require targetSdk >= 30 and so cannot coexist with exec(). -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <!-- Android 13+ split media access into three. A targetSdk-28 app still gets
+         media through the legacy permission above, but declaring these keeps the
+         per-category toggles present and means a future targetSdk bump cannot
+         silently lose photos, video or audio. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
+
     <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
         android:allowBackup="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">

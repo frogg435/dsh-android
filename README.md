@@ -256,6 +256,36 @@ gradle assembleRelease
 签名口令从 gradle properties 读取：`RELEASE_STORE_PASSWORD` / `RELEASE_KEY_ALIAS` /
 `RELEASE_KEY_PASSWORD`。**密钥库不在本仓库里** —— 构建 release 之前请先生成自己的。
 
+## 存储权限
+
+应用申请并获得了共享存储的读写权限 —— 照片、视频、音频、文档都能直接访问，
+终端面板和 agent 因此可以读写手机上的文件，而不只是应用私有目录。
+
+**关键点：不需要 `MANAGE_EXTERNAL_STORAGE`（"管理所有文件"）。**
+
+那个权限要求 `targetSdk >= 30`，而 **`targetSdk >= 29` 会让 node 起不来**
+（Android 10+ 禁止 `exec()` 可写目录里的文件）。两者不可兼得。
+
+但 `targetSdk 28` 本身带来了更好的结果：**Android 11+ 对 targetSdk ≤ 29 的应用
+保留传统存储模型**，`READ/WRITE_EXTERNAL_STORAGE` + `requestLegacyExternalStorage`
+即可广泛读写共享存储 —— 效果上等价于"管理所有文件"。
+
+实测（应用进程内，SELinux 上下文 `untrusted_app_27`）：
+
+```
+ls /sdcard        → Alarms, Android, Audiobooks, DCIM, Documents, Download…
+ls /sdcard/DCIM   → Camera, QuarkScan, Screenshots
+ls /sdcard/Pictures → IMG_20260826_100105.jpg …
+touch /sdcard/.x  → 写成功
+```
+
+manifest 同时声明了 Android 13+ 的 `READ_MEDIA_IMAGES/VIDEO/AUDIO`：targetSdk 28
+的应用其实靠上面那条传统权限就能拿到媒体访问，声明它们是为了让分项开关存在，
+并且将来万一提升 targetSdk 时不会静默丢失媒体权限。
+
+**够不到的地方**：`/sdcard/Android/data/<其他应用>/` —— Android 11 起即使在传统
+模型下也隔离。
+
 ## ABI 标记
 
 `app/src/main/jniLibs/arm64-v8a/libdshabi.so` 是一个 3.8 KB 的占位库，没有任何代码

@@ -123,6 +123,7 @@ public class MainActivity extends Activity {
 				android.util.Log.i("DSH", "boot: launch ok -> " + url);
 				runOnUiThread(() -> {
 					ready = true;
+					requestStoragePermissions();
 					if (!pageLoaded) load(url);
 				});
 				bootDone = true;
@@ -575,6 +576,30 @@ public class MainActivity extends Activity {
 			android.util.Log.i("DSH", "keyboard covers " + coveredCss + " css px");
 			evalTerm("window.__dshTermKb && window.__dshTermKb(" + coveredCss + ")");
 		});
+	}
+
+	/**
+	 * Ask for shared-storage access once, on the first launch.
+	 *
+	 * A targetSdk-28 app requests these the old way and Android 11+ answers with
+	 * the legacy storage model, which is broad access over /sdcard — it is what
+	 * lets the terminal and the agent touch photos, downloads and documents
+	 * rather than only the app's private directory. Both permission sets are
+	 * requested because the system ignores whichever does not apply to its
+	 * version; denial is not fatal, the app just keeps its private sandbox.
+	 */
+	private void requestStoragePermissions() {
+		if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+				== android.content.pm.PackageManager.PERMISSION_GRANTED) {
+			return;
+		}
+		requestPermissions(new String[] {
+				android.Manifest.permission.READ_EXTERNAL_STORAGE,
+				android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+				"android.permission.READ_MEDIA_IMAGES",
+				"android.permission.READ_MEDIA_VIDEO",
+				"android.permission.READ_MEDIA_AUDIO"
+		}, 1);
 	}
 
 	/**
