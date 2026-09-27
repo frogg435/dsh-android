@@ -4,6 +4,14 @@ Runs DSH inside a WebView with **every runtime baked into the APK**: no Termux,
 no root, no network install. First launch unpacks ~487 MB into the app's private
 directory and then forks the bundled node.
 
+## Requirements
+
+- **Android 11+ (API 30), arm64.** The bundled `node`, `bash` and every binary in
+  the prefix are aarch64 shared objects, so 32-bit and x86 devices cannot run it
+  even though the APK will install on them.
+- **~1.5 GB free** before the first launch; a C/C++ toolchain adds ~680 MB.
+- No root. No Termux. No external files.
+
 ## What's inside
 
 | Asset | Role |

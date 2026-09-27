@@ -5,10 +5,14 @@ android {
     compileSdk 35
     defaultConfig {
         applicationId "com.dsh.launcher"
-        minSdk 26
-        // 28 not 35: Android 10+ blocks exec() of files in the app's writable
-        // home dir when targetSdk >= 29 (EACCES). Node lives in filesDir.
-        // Termux itself ships targetSdk 28 for the same reason.
+        // Android 11. Nothing here needs 5.0-10.0, and the bundled binaries are
+        // built for API 24, so this only stops installs on devices that are
+        // effectively gone.
+        minSdk 30
+        // 28 not 35, and NOT raised with minSdk: Android 10+ blocks exec() of
+        // files in the app's writable home dir when targetSdk >= 29 (EACCES).
+        // Node lives in filesDir and must be executed, so 28 is load-bearing —
+        // raising it breaks the app regardless of minSdk.
         targetSdk 28
         versionCode 1
         versionName "1.0"
