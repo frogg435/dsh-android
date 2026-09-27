@@ -46,7 +46,32 @@ archive** — get it from `dsh-keystore.zip`, or generate your own with `keytool
 but note that Android only accepts an update signed by the same key, so an
 existing install cannot be upgraded by a differently-signed APK.
 
+## Debug and release variants
+
+Both exist; they are the Gradle defaults, with no flavour split.
+
+| | `assembleDebug` | `assembleRelease` |
+|---|---|---|
+| Output | `app/build/outputs/apk/debug/app-debug.apk` | `app/build/outputs/apk/release/app-release.apk` |
+| Signing | the auto-generated `~/.android/debug.keystore` | `release.keystore` (see Signing) |
+| `android:debuggable` | true, so `adb run-as com.dsh.launcher` works | false |
+| Shrinking | none | none (`minifyEnabled false`) |
+
+Two consequences worth knowing:
+
+- **The applicationId is the same in both** (`com.dsh.launcher`) while the signing
+  keys differ, so installing one over the other fails with
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Uninstall first, or add an
+  `applicationIdSuffix ".debug"` to the debug build type if you want them side by
+  side.
+- **Only the release build can be updated by a later release build.** The debug
+  keystore is machine-local, so a debug APK built elsewhere cannot update yours.
+
+`run-as` being unavailable on a release install is why debugging a shipped build
+on a device without root cannot inspect the app's private directory.
+
 ## Build
+
 
 ```sh
 gradle assembleRelease
