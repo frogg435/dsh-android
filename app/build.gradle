@@ -1,0 +1,42 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.dsh.launcher'
+    compileSdk 35
+    defaultConfig {
+        applicationId "com.dsh.launcher"
+        minSdk 26
+        // 28 not 35: Android 10+ blocks exec() of files in the app's writable
+        // home dir when targetSdk >= 29 (EACCES). Node lives in filesDir.
+        // Termux itself ships targetSdk 28 for the same reason.
+        targetSdk 28
+        versionCode 1
+        versionName "1.0"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint {
+        disable 'ExpiredTargetSdkVersion'   // sideloaded, not Play; 28 is required for exec()
+    }
+    aaptOptions {
+        // Default pattern drops dotfiles (`.manifest.json` etc) from assets —
+        // 70 of them are load-bearing in dsh-termux. Keep every other default.
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    signingConfigs {
+        release {
+            storeFile file("${rootProject.projectDir}/release.keystore")
+            storePassword project.findProperty('RELEASE_STORE_PASSWORD')
+            keyAlias project.findProperty('RELEASE_KEY_ALIAS')
+            keyPassword project.findProperty('RELEASE_KEY_PASSWORD')
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+}

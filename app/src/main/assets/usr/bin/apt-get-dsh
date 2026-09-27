@@ -1,0 +1,16 @@
+#!/system/bin/sh
+# Wrapper for a prefix that was built for /data/user/0/com.dsh.launcher/files/usr.
+#  - LD_LIBRARY_PATH: binaries have RPATH pointing at the unreadable com.termux dir
+#  - PATH: dpkg/dpkg-deb shell out to gzip/tar/xz, which must be the prefix builds
+#    (Android's toybox tar rejects the --warning=no-timestamp option dpkg passes)
+#  - APT_CONFIG: so apt reads our apt.conf before the compiled-in default paths
+PREFIX="/data/user/0/com.dsh.launcher/files/usr"
+RUNTIME="/data/user/0/com.dsh.launcher/files/runtime"
+export LD_LIBRARY_PATH="$PREFIX/lib:$RUNTIME/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PATH="$PREFIX/bin:$PATH"
+export APT_CONFIG="$PREFIX/etc/apt/apt.conf"
+export DPKG_ADMINDIR="$PREFIX/var/lib/dpkg"
+case "$(basename "$0")" in
+  apt-*) exec "$PREFIX/bin/apt-get" -c "$APT_CONFIG" "$@" ;;
+  *)     exec "$PREFIX/bin/apt-get" "$@" ;;
+esac

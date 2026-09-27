@@ -1,0 +1,93 @@
+#!/data/user/0/com.dsh.launcher/files/usr/bin/bash
+# `pkg` — the familiar package-manager front end, for the relocated prefix.
+#
+# Termux ships a script of the same name over apt; this mirrors its common
+# subcommands so muscle memory works. Everything routes through the standard
+# apt-get in this prefix, which already carries the required environment.
+set -uo pipefail
+
+PREFIX="${DSH_PREFIX:-/data/user/0/com.dsh.launcher/files/usr}"
+APT="$PREFIX/bin/apt-get"
+CACHE="$PREFIX/bin/apt-cache"
+
+usage() {
+	cat <<'EOF'
+Usage: pkg command [arguments]
+
+A package manager for this embedded prefix (apt-backed).
+
+Commands:
+  install <pkg...>    Install packages
+  uninstall <pkg...>  Remove packages
+  reinstall <pkg...>  Reinstall packages, restoring any missing files
+  search <term>       Search package names and descriptions
+  show <pkg>          Show package details
+  list-installed      List installed packages
+  list-all            List every available package
+  update              Refresh the package index
+  upgrade             Upgrade all installed packages
+  files <pkg>         List the files a package owns
+  clean               Clear the download cache
+EOF
+}
+
+need_args() {
+	[ $# -gt 0 ] || { echo "pkg: '$1' needs at least one argument" >&2; exit 2; }
+}
+
+cmd="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+	install|add)
+		need_args "$@"
+		exec "$APT" install -y "$@"
+		;;
+	uninstall|remove|del)
+		need_args "$@"
+		exec "$APT" remove -y "$@"
+		;;
+	reinstall)
+		# --reinstall matters here: the inherited dpkg database lists ~120
+		# packages whose files were never extracted, so a plain install
+		# answers "already the newest version" and does nothing.
+		need_args "$@"
+		exec "$APT" install -y --reinstall "$@"
+		;;
+	search)
+		need_args "$@"
+		exec "$CACHE" search "$@"
+		;;
+	show)
+		need_args "$@"
+		exec "$CACHE" show "$@"
+		;;
+	list-installed)
+		exec "$PREFIX/bin/dpkg-query" -W -f='${Package} ${Version}\n'
+		;;
+	list-all)
+		exec "$CACHE" dumpavail
+		;;
+	update)
+		exec "$APT" update
+		;;
+	upgrade)
+		exec "$APT" upgrade -y
+		;;
+	files)
+		need_args "$@"
+		exec "$PREFIX/bin/dpkg-query" -L "$@"
+		;;
+	clean)
+		exec "$APT" clean
+		;;
+	''|-h|--help|help)
+		usage
+		;;
+	*)
+		echo "pkg: unknown command '$cmd'" >&2
+		echo >&2
+		usage >&2
+		exit 2
+		;;
+esac

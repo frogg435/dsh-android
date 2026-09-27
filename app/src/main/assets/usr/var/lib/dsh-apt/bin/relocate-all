@@ -1,0 +1,24 @@
+#!/system/bin/sh
+# One full relocation sweep over the prefix.
+#
+# Why this exists as its own script:
+#   * A sweep costs ~2.7s across ~13000 files. Running it after EVERY dpkg
+#     invocation made a 107-package install take minutes, so it now runs once
+#     per apt transaction (DPkg::Post-Invoke in apt.conf).
+#   * Detecting "changed files" instead was worse than slow: dpkg preserves the
+#     mtimes baked into a .deb, so an mtime filter matched nothing and freshly
+#     installed binaries kept their Termux shebangs and RUNPATHs. Clang's
+#     aarch64-linux-android-clang wrapper stayed broken that way — a 201-byte
+#     script whose shebang pointed at /data/data/com.termux/... and therefore
+#     failed with EACCES while pip used it as LDSHARED.
+#
+# Safe to run any time; every tool is idempotent.
+set -u
+
+PREFIX="${DSH_PREFIX:-/data/user/0/com.dsh.launcher/files/usr}"
+TOOLS="$PREFIX/var/lib/dsh-apt/bin"
+
+for tool in relocate-elfs relocate-text fix-shebangs fix-python-ldshared; do
+	[ -x "$TOOLS/$tool" ] || continue
+	"$TOOLS/$tool" </dev/null >/dev/null 2>&1
+done

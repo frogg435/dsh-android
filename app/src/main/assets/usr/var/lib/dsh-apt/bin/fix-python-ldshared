@@ -1,0 +1,44 @@
+#!/data/user/0/com.dsh.launcher/files/usr/bin/python3
+# Make C extension modules loadable on Android.
+#
+# CPython on Linux never links extension modules against libpython: the
+# interpreter is expected to export Py* symbols globally and dlopen resolves
+# them. Android's bionic linker does not put an executable's dependencies into
+# the global scope for dlopen'd objects, and Termux's python3 is only a 4 KB
+# launcher that NEEDs libpython3.14.so — so every extension built through
+# sysconfig fails with:
+#
+#     dlopen failed: cannot locate symbol "PyModule_Create2"
+#
+# which is exactly how pip's C-extension builds fail. Appending libpython to
+# LDSHARED fixes it; verified by building a module through
+# sysconfig.get_config_var('LDSHARED') and importing it.
+#
+# Idempotent: does nothing once the flag is present, and reruns after a python
+# upgrade replaces the sysconfig data file.
+import glob
+import os
+import re
+import sys
+
+PREFIX = os.environ.get("DSH_PREFIX", "/data/user/0/com.dsh.launcher/files/usr")
+FLAG = "-lpython3.14"
+
+changed = 0
+for path in glob.glob(PREFIX + "/lib/python3*/_sysconfigdata*.py"):
+    try:
+        src = open(path).read()
+    except OSError:
+        continue
+    m = re.search(r"('LDSHARED':\s*')([^']*)(')", src)
+    if not m:
+        continue
+    if FLAG in m.group(2):
+        continue
+    libdir = PREFIX + "/lib"
+    fixed = m.group(2) + " -L" + libdir + " " + FLAG
+    open(path, "w").write(src[: m.start(2)] + fixed + src[m.end(2):])
+    changed += 1
+
+if changed:
+    sys.stdout.write("fix-python-ldshared: patched %d sysconfig file(s)\n" % changed)

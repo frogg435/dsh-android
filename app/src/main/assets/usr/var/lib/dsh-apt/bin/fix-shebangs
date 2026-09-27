@@ -1,0 +1,12 @@
+#!/system/bin/sh
+# Launcher for the node-based helper: the DSH node runtime needs its own
+# library path, which must not leak into dpkg's child processes.
+#
+# OPENSSL_CONF is mandatory here. The bundled node was built against Termux and
+# its compiled-in OPENSSLDIR is /data/data/com.termux/files/usr/etc/tls, a
+# directory this app cannot read, so node refuses to start without an override.
+# Termux itself never noticed because there the file exists.
+export LD_LIBRARY_PATH="/data/user/0/com.dsh.launcher/files/runtime/lib"
+export OPENSSL_CONF=/dev/null
+export OPENSSL_MODULES="/data/user/0/com.dsh.launcher/files/runtime/lib"
+exec "/data/user/0/com.dsh.launcher/files/runtime/bin/node" "/data/user/0/com.dsh.launcher/files/usr/var/lib/dsh-apt/bin/fix-shebangs.mjs" "$@"

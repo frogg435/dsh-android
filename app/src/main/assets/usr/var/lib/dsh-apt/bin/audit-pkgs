@@ -1,0 +1,3 @@
+#!/system/bin/sh
+export LD_LIBRARY_PATH="/data/user/0/com.dsh.launcher/files/runtime/lib"
+exec "/data/user/0/com.dsh.launcher/files/runtime/bin/node" "/data/user/0/com.dsh.launcher/files/usr/var/lib/dsh-apt/bin/audit-pkgs.mjs" "$@"

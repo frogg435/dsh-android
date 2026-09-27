@@ -1,0 +1,36 @@
+#!/system/bin/sh
+# Minimal apt-key: implements the 'verify' subcommand that apt 2.8 shells out to.
+# Backed by the real gpgv from this prefix.
+PREFIX="/data/user/0/com.dsh.launcher/files/usr"
+TRUSTEDFILE="$PREFIX/var/lib/dsh-apt/trusted.gpg"
+TRUSTEDPARTS="$PREFIX/var/lib/dsh-apt/trusted.gpg.d"
+GPGV="$PREFIX/bin/gpgv"
+export LD_LIBRARY_PATH="$PREFIX/lib:/data/user/0/com.dsh.launcher/files/runtime/lib"
+
+statusfd=""
+positional=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --quiet|--readonly|--quiet=*|--readonly=*) shift ;;
+    --status-fd) statusfd="$2"; shift 2 ;;
+    --status-fd=*) statusfd="${1#--status-fd=}"; shift ;;
+    verify|--*) shift ;;
+    *) positional="$positional $1"; shift ;;
+  esac
+done
+
+keyrings=""
+[ -f "$TRUSTEDFILE" ] && keyrings="$keyrings --keyring $TRUSTEDFILE"
+if [ -d "$TRUSTEDPARTS" ]; then
+  for k in "$TRUSTEDPARTS"/*; do
+    [ -f "$k" ] && keyrings="$keyrings --keyring $k"
+  done
+fi
+
+# shellcheck disable=SC2086
+set -- $positional
+if [ -n "$statusfd" ]; then
+  exec "$GPGV" --status-fd "$statusfd" $keyrings "$@"
+else
+  exec "$GPGV" $keyrings "$@"
+fi

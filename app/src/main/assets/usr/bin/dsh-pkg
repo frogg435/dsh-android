@@ -1,0 +1,27 @@
+#!/data/user/0/com.dsh.launcher/files/usr/bin/bash
+# Install packages into this relocated Termux prefix.
+#
+# The inherited dpkg database claims ~120 packages are installed while most of
+# their files were never extracted, so a plain `apt-get install X` answers
+# "already the newest version" and does nothing. This helper reinstalls the
+# whole dependency closure, which materialises the real files.
+set -euo pipefail
+PREFIX=/data/user/0/com.dsh.launcher/files/usr
+APT="$PREFIX/bin/apt-get-dsh"
+
+if [ $# -eq 0 ]; then
+  echo "usage: dsh-pkg <package> [package...]" >&2
+  exit 2
+fi
+
+closure=$("$PREFIX/bin/apt-cache-dsh" depends --recurse \
+            --no-recommends --no-suggests --no-conflicts \
+            --no-breaks --no-replaces --no-enhances "$@" 2>/dev/null \
+          | sed 's/^ *//' \
+          | grep -vE '^(Depends|PreDepends|Recommends|Suggests|Conflicts|Breaks|Replaces|Enhances):' \
+          | grep -vE '<' | sed 's/:.*//' | sort -u | tr '\n' ' ')
+
+echo ">> closure: $closure"
+echo
+# shellcheck disable=SC2086
+exec "$APT" install -y --reinstall $closure

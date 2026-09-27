@@ -1,0 +1,76 @@
+#!/system/bin/sh
+# dpkg wrapper for the relocated Termux prefix. Three jobs:
+#  1. rewrite the compiled-in Termux prefix inside maintainer scripts, both for
+#     already-extracted ones and for the .deb files apt is about to unpack
+#     (dpkg force-chmods and execve()s scripts, so the shebang must be valid)
+#  2. run the real dpkg
+#  3. relocate DT_RUNPATH of freshly installed ELF binaries and rewrite the
+#     prefix baked into freshly installed scripts
+PREFIX="/data/user/0/com.dsh.launcher/files/usr"
+RUNTIME="/data/user/0/com.dsh.launcher/files/runtime"
+TOOLS="/data/user/0/com.dsh.launcher/files/usr/var/lib/dsh-apt/bin"
+TMP="/data/user/0/com.dsh.launcher/files/usr/var/lib/dsh-apt/tmp"
+OLD=/data/data/com.termux/files/usr
+
+export PATH="$PREFIX/bin:/system/bin:$RUNTIME/bin"
+
+# The scratch dir is an empty directory in the shipped prefix, and aapt2 omits
+# empty directories from the APK, so it can be missing on a fresh install.
+# setup-prefix.sh recreates it, but the wrapper must not hard-fail if it did not.
+mkdir -p "$TMP" 2>/dev/null
+
+fix_deb() {
+  deb="$1"
+  work="$TMP/deb.$$"
+  rm -rf "$work"; mkdir -p "$work"
+  dpkg-deb -R "$deb" "$work" 2>/dev/null || { rm -rf "$work"; return 0; }
+  for f in "$work"/DEBIAN/*; do
+    [ -f "$f" ] || continue
+    case "$(basename "$f")" in md5sums|conffiles) continue ;; esac
+    grep -q "$OLD" "$f" 2>/dev/null && sed -i "s|$OLD|$PREFIX|g" "$f"
+    chmod 755 "$f"
+  done
+  dpkg-deb -b "$work" "$deb.new" >/dev/null 2>&1 && mv -f "$deb.new" "$deb"
+  rm -rf "$work"
+}
+
+# 1. pre-existing maintainer scripts from the bootstrap image
+for f in "$PREFIX"/var/lib/dpkg/info/*; do
+  [ -f "$f" ] || continue
+  case "$f" in *.list|*.md5sums|*.conffiles|*.triggers|*.shlibs|*.symbols) continue ;; esac
+  grep -q "$OLD" "$f" 2>/dev/null && sed -i "s|$OLD|$PREFIX|g" "$f"
+done
+
+# 1b. archives apt is handing to dpkg right now
+for a in "$@"; do
+  case "$a" in *.deb) fix_deb "$a" ;; esac
+done
+
+# 2. real dpkg. stdout/stdin are untouched — apt reads dpkg's status-fd protocol
+#    on them, and corrupting that breaks the whole transaction.
+"$PREFIX/bin/dpkg.real" "$@"
+st=$?
+
+# 3. Post-install relocation.
+#
+#    This used to build a "changed files" list from mtimes, which silently
+#    matched nothing: dpkg preserves the mtimes stored in the .deb, so freshly
+#    unpacked binaries kept their Termux shebangs and RUNPATHs. Clang's
+#    aarch64-linux-android-clang wrapper stayed a 201-byte script pointing at
+#    /data/data/com.termux/... and failed with EACCES whenever pip used it.
+#
+#    A full sweep costs ~2.7s over ~13000 files. Doing that after every package
+#    made a 107-package install take minutes, so when apt is driving (it always
+#    passes --status-fd) the sweep is deferred to DPkg::Post-Invoke in apt.conf
+#    and runs once for the whole transaction. A direct `dpkg -i` still sweeps
+#    immediately, since nothing else would.
+case " $* " in
+  *--status-fd*)
+    : # apt's Post-Invoke hook runs relocate-all once at the end
+    ;;
+  *--unpack*|*--install*|*" -i "*|*--configure*)
+    "$TOOLS/relocate-all"
+    ;;
+esac
+rm -f "$STAMP"
+exit $st
